@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSL证书管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1000px;
+            margin-top: 30px;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #eee;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 10px 15px;
+        }
+        .alert {
+            border-radius: 8px;
+        }
+        .cert-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .cert-info dt {
+            color: #6c757d;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loading.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">SSL证书查询</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="queryForm" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="accessKeyId" class="form-label">Access Key ID</label>
+                                <input type="text" class="form-control" id="accessKeyId" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="accessKey" class="form-label">Access Key</label>
+                                <input type="password" class="form-control" id="accessKey" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="sslCertId" class="form-label">证书ID</label>
+                                <input type="number" class="form-control" id="sslCertId" required>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> 查询证书
+                                </button>
+                            </div>
+                        </form>
+
+                        <div id="certInfo" class="cert-info" style="display: none;">
+                            <h5 class="mb-3">证书信息</h5>
+                            <dl class="row mb-0"></dl>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">SSL证书更新</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="updateForm" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="updateAccessKeyId" class="form-label">Access Key ID</label>
+                                <input type="text" class="form-control" id="updateAccessKeyId" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="updateAccessKey" class="form-label">Access Key</label>
+                                <input type="password" class="form-control" id="updateAccessKey" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="updateSslCertId" class="form-label">证书ID</label>
+                                <input type="number" class="form-control" id="updateSslCertId" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="certName" class="form-label">证书名称</label>
+                                <input type="text" class="form-control" id="certName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="description" class="form-label">描述</label>
+                                <textarea class="form-control" id="description" rows="2" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="serverName" class="form-label">服务域名名称</label>
+                                <input type="text" class="form-control" id="serverName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="certData" class="form-label">证书数据</label>
+                                <textarea class="form-control" id="certData" rows="3" required></textarea>
+                                <div class="form-text">请输入PEM格式的证书数据，包含 BEGIN CERTIFICATE 和 END CERTIFICATE 标记</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="keyData" class="form-label">密钥数据</label>
+                                <textarea class="form-control" id="keyData" rows="3" required></textarea>
+                                <div class="form-text">请输入PEM格式的私钥数据，包含 BEGIN PRIVATE KEY 和 END PRIVATE KEY 标记</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="timeBeginAt" class="form-label">生效时间</label>
+                                <input type="datetime-local" class="form-control" id="timeBeginAt" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="timeEndAt" class="form-label">过期时间</label>
+                                <input type="datetime-local" class="form-control" id="timeEndAt" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dnsNames" class="form-label">域名列表（每行一个）</label>
+                                <textarea class="form-control" id="dnsNames" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="commonNames" class="form-label">发行组织（每行一个）</label>
+                                <textarea class="form-control" id="commonNames" rows="3" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="isOn" checked>
+                                    <label class="form-check-label" for="isOn">
+                                        启用证书
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="isCA">
+                                    <label class="form-check-label" for="isCA">
+                                        是否为CA证书
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-cloud-upload"></i> 更新证书
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const loading = document.querySelector('.loading');
+        const certInfo = document.getElementById('certInfo');
+        const certInfoDl = certInfo.querySelector('dl');
+
+        // 显示加载动画
+        function showLoading() {
+            loading.classList.add('active');
+        }
+
+        // 隐藏加载动画
+        function hideLoading() {
+            loading.classList.remove('active');
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // 5秒后自动消失
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // 显示成功信息
+        function showSuccess(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // 5秒后自动消失
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // 查询证书
+        document.getElementById('queryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+
+            try {
+                const response = await axios.post('https://open.farcdn.net/api/source/findSSLCertConfig', {
+                    accessKeyId: document.getElementById('accessKeyId').value,
+                    accessKey: document.getElementById('accessKey').value,
+                    sslCertId: document.getElementById('sslCertId').value
+                });
+
+                if (response.data.code === 200) {
+                    certInfoDl.innerHTML = Object.entries(response.data.data)
+                        .map(([key, value]) => `
+                            <dt class="col-sm-3">${key}</dt>
+                            <dd class="col-sm-9">${Array.isArray(value) ? value.join(', ') : value}</dd>
+                        `).join('');
+                    certInfo.style.display = 'block';
+                    showSuccess('证书信息获取成功');
+                } else {
+                    showError(response.data.message || '获取证书信息失败');
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+                showError(error.response?.data?.message || '查询失败，请检查输入信息');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // 更新证书
+        document.getElementById('updateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+
+            try {
+                // 确保空值处理和布尔值转换
+                const formData = {
+                    accessKeyId: document.getElementById('updateAccessKeyId').value,
+                    accessKey: document.getElementById('updateAccessKey').value,
+                    sslCertId: parseInt(document.getElementById('updateSslCertId').value),
+                    name: document.getElementById('certName').value,
+                    description: document.getElementById('description').value,
+                    serverName: document.getElementById('serverName').value,
+                    certData: document.getElementById('certData').value,
+                    keyData: document.getElementById('keyData').value,
+                    timeBeginAt: new Date(document.getElementById('timeBeginAt').value).getTime(),
+                    timeEndAt: new Date(document.getElementById('timeEndAt').value).getTime(),
+                    dnsNames: document.getElementById('dnsNames').value
+                        .split('\n')
+                        .map(name => name.trim())
+                        .filter(name => name !== ''),
+                    commonNames: document.getElementById('commonNames').value
+                        .split('\n')
+                        .map(name => name.trim())
+                        .filter(name => name !== ''),
+                    // 明确设置布尔值，确保字段一定存在
+                    isOn: document.getElementById('isOn').checked,
+                    isCA: document.getElementById('isCA').checked
+                };
+
+                console.log('发送的数据:', formData); // 添加日志，方便调试
+
+                const response = await axios.post('https://open.farcdn.net/api/source/updateSSLCert', formData);
+
+                if (response.data.code === 200) {
+                    showSuccess('证书更新成功');
+                    document.getElementById('updateForm').reset();
+                    // 重置后确保isOn的默认选中状态
+                    document.getElementById('isOn').checked = true;
+                } else {
+                    showError(response.data.message || '证书更新失败');
+                }
+            } catch (error) {
+                console.error('更新失败:', error);
+                showError(error.response?.data?.message || '更新失败，请检查输入信息');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // 自动填充更新表单的认证信息
+        document.getElementById('queryForm').addEventListener('change', () => {
+            document.getElementById('updateAccessKeyId').value = document.getElementById('accessKeyId').value;
+            document.getElementById('updateAccessKey').value = document.getElementById('accessKey').value;
+        });
+    </script>
+</body>
+</html>
