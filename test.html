@@ -65,6 +65,87 @@
             .catch(error => {
                 console.error('操作失败:', error);
             });
+
+        /**
+* 更新SSL证书信息
+* @param {Object} certData - 证书更新数据
+* @returns {Promise<Object>} 更新结果
+*/
+        async function updateSSLCert(certData) {
+            // 验证必填字段
+            const requiredFields = [
+                'sslCertId', 'isOn', 'name', 'description', 'serverName',
+                'isCA', 'certData', 'keyData', 'timeBeginAt', 'timeEndAt',
+                'dnsNames', 'commonNames'
+            ];
+
+            const missingFields = requiredFields.filter(field => !(field in certData));
+            if (missingFields.length > 0) {
+                throw new Error(`缺少必填字段: ${missingFields.join(', ')}`);
+            }
+
+            // 构建请求数据
+            const requestData = {
+                ...certData,
+                accessKeyId: API_CONFIG.accessKeyId,
+                accessKey: API_CONFIG.accessKey
+            };
+
+            try {
+                const response = await fetch(`${API_CONFIG.baseUrl}/updateSSLCert`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    console.log('✅ 更新成功:', result.message);
+                    return result;
+                } else {
+                    console.error('❌ 更新失败:', result.message);
+                    if (result.missingFields) {
+                        console.error('缺少字段:', result.missingFields);
+                    }
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('🚨 更新异常:', error.message);
+                throw error;
+            }
+        }
+
+        // 使用示例
+        const certUpdateData = {
+            sslCertId: 2106,
+            isOn: true,
+            name: "example.com",
+            description: "更新的SSL证书描述",
+            serverName: "web-server-01",
+            isCA: false,
+            certData: "-----BEGIN CERTIFICATE-----\n您的证书内容\n-----END CERTIFICATE-----",
+            keyData: "-----BEGIN PRIVATE KEY-----\n您的私钥内容\n-----END PRIVATE KEY-----",
+            timeBeginAt: Date.now(), // 当前时间
+            timeEndAt: Date.now() + (365 * 24 * 60 * 60 * 1000), // 一年后
+            dnsNames: ["example.com", "www.example.com"],
+            commonNames: ["example.com"]
+        };
+
+        updateSSLCert(certUpdateData)
+            .then(result => {
+                console.log('证书更新完成');
+            })
+            .catch(error => {
+                console.error('更新失败:', error);
+            });
     </script>
 </body>
 
