@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        // 配置文件 - config.js
+        const API_CONFIG = {
+            baseUrl: 'https://open.farcdn.net/api/source',
+            accessKeyId: 'u2ZF6k63dFCOS7It',
+            accessKey: 'mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG',
+            sslCertId: 2106
+        };
+        /**
+ * 查询SSL证书信息
+ * @param {number} sslCertId - 证书ID
+ * @returns {Promise<Object>} 证书信息
+ */
+        async function findSSLCertConfig(sslCertId = API_CONFIG.sslCertId) {
+            try {
+                const response = await fetch(`${API_CONFIG.baseUrl}/findSSLCertConfig`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sslCertId: sslCertId,
+                        accessKeyId: API_CONFIG.accessKeyId,
+                        accessKey: API_CONFIG.accessKey
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    console.log('✅ 查询成功:', result.data);
+                    return result.data;
+                } else {
+                    console.error('❌ 查询失败:', result.message);
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('🚨 请求异常:', error.message);
+                throw error;
+            }
+        }
+
+        // 使用示例
+        findSSLCertConfig()
+            .then(certInfo => {
+                console.log('证书名称:', certInfo['证书名称']);
+                console.log('过期时间:', certInfo['证书过期时间']);
+                console.log('域名列表:', certInfo['域名列表']);
+            })
+            .catch(error => {
+                console.error('操作失败:', error);
+            });
+    </script>
+</body>
+
+</html>
