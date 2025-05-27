@@ -7,6 +7,7 @@
   - [1. 查询SSL证书信息](#1-查询ssl证书信息)
   - [2. 更新SSL证书信息](#2-更新ssl证书信息)
   - [3. 部署SSL证书信息](#3-创建ssl证书信息)
+  - [4. 获取SSL证书列表](#4-获取ssl证书列表)
 - [JavaScript测试示例](#javascript测试示例)
 - [错误码说明](#错误码说明)
 - [注意事项](#注意事项)
@@ -294,6 +295,153 @@ https://open.farcdn.net/api/source/createSSLCert
 - 🔢 **返回证书ID**: 创建成功后会返回新的 `sslCertId`，请妥善保存
 - 📝 **完整验证**: 建议使用 `SSLCertValidator` 类进行完整的数据验证
 - 🔄 **关联操作**: 创建成功后可使用其他接口进行查询和更新操作
+
+---
+
+### 4. 获取SSL证书列表
+
+#### 📍 接口地址
+```
+请求方法 POST 
+URL:
+https://open.farcdn.net/api/source/getSSLCertList
+```
+
+#### 🎯 功能说明
+获取当前用户的SSL证书列表，支持分页查询。该接口整合了证书计数和列表获取功能，返回证书的基本信息包括ID、名称、域名列表和总数量。默认获取所有证书，也支持分页参数。
+
+#### 📥 请求参数信息
+
+| 参数名       | 类型   | 必填 | 说明                           | 示例值               |
+| ------------ | ------ | ---- | ------------------------------ | -------------------- |
+| accessKeyId  | string | ✅   | 访问密钥ID                     | u2ZF6k63dFCOS7It     |
+| accessKey    | string | ✅   | 访问密钥                       | mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG |
+| offset       | int    | ❌   | 偏移量，用于分页（默认：0）    | 0                    |
+| size         | int    | ❌   | 每页数量（默认：获取所有证书） | 20                   |
+
+#### 📝 请求示例
+
+**获取所有证书（默认行为）：**
+```json
+{
+  "accessKeyId": "u2ZF6k63dFCOS7It",
+  "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG"
+}
+```
+
+**分页获取证书：**
+```json
+{
+  "accessKeyId": "u2ZF6k63dFCOS7It",
+  "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG",
+  "offset": 0,
+  "size": 10
+}
+```
+
+#### ✅ 成功响应示例
+```json
+{
+  "code": 200,
+  "data": {
+    "list": [
+      {
+        "id": 2106,
+        "name": "example.com",
+        "dnsNames": ["example.com", "www.example.com", "*.example.com"]
+      },
+      {
+        "id": 2107,
+        "name": "api.example.com",
+        "dnsNames": ["api.example.com"]
+      },
+      {
+        "id": 2108,
+        "name": "test.example.com",
+        "dnsNames": ["test.example.com", "staging.example.com"]
+      }
+    ],
+    "total": 15,
+    "offset": 0,
+    "size": 15
+  },
+  "message": "获取成功"
+}
+```
+
+#### ❌ 错误响应示例
+
+**参数错误 (400)：**
+```json
+{
+  "code": 400,
+  "message": "缺少必要参数",
+  "required": ["accessKeyId", "accessKey"]
+}
+```
+
+**认证失败 (401)：**
+```json
+{
+  "code": 401,
+  "message": "获取访问令牌失败"
+}
+```
+
+**解码失败 (500)：**
+```json
+{
+  "code": 500,
+  "message": "证书列表解码失败"
+}
+```
+
+#### 💡 接口特性说明
+
+**默认行为：**
+- 当不传入 `size` 参数时，自动获取所有证书
+- 返回的 `size` 字段会显示实际获取的证书数量
+
+**分页支持：**
+- 通过 `offset` 和 `size` 参数实现分页
+- `offset`：跳过的记录数（从0开始）
+- `size`：每页返回的记录数
+
+**返回数据说明：**
+- `list`：证书列表，每个证书包含ID、名称和域名列表
+- `total`：用户的证书总数
+- `offset`：当前请求的偏移量
+- `size`：当前请求实际返回的证书数量
+
+#### 🛠 使用场景示例
+
+**场景1：获取所有证书**
+```json
+{
+  "accessKeyId": "u2ZF6k63dFCOS7It",
+  "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG"
+}
+```
+
+**场景2：首页分页显示**
+```json
+{
+  "accessKeyId": "u2ZF6k63dFCOS7It",
+  "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG",
+  "offset": 0,
+  "size": 10
+}
+```
+
+**场景3：翻页查看**
+```json
+{
+  "accessKeyId": "u2ZF6k63dFCOS7It",
+  "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG",
+  "offset": 10,
+  "size": 10
+}
+```
 
 ---
 
@@ -743,7 +891,249 @@ if (validation.valid) {
 }
 ```
 
-### 4. 完整的SSL证书管理类
+### 4. 获取SSL证书列表 - JavaScript示例
+
+#### 使用 Fetch API
+```javascript
+/**
+ * 获取SSL证书列表
+ * @param {number} offset - 偏移量（默认：0）
+ * @param {number} size - 每页数量（不传则获取所有证书）
+ * @returns {Promise<Object>} 证书列表数据
+ */
+async function getSSLCertList(offset = 0, size = null) {
+  try {
+    const requestData = {
+      accessKeyId: API_CONFIG.accessKeyId,
+      accessKey: API_CONFIG.accessKey,
+      offset: offset
+    };
+
+    // 如果指定了size，则添加到请求数据中
+    if (size !== null && size !== undefined) {
+      requestData.size = size;
+    }
+
+    const response = await fetch(`${API_CONFIG.baseUrl}/getSSLCertList`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.code === 200) {
+      console.log('✅ 获取证书列表成功');
+      console.log(`总计：${result.data.total} 个证书`);
+      console.log(`当前返回：${result.data.list.length} 个证书`);
+      return result.data;
+    } else {
+      console.error('❌ 获取失败:', result.message);
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('🚨 请求异常:', error.message);
+    throw error;
+  }
+}
+
+// 使用示例
+
+// 1. 获取所有证书
+getSSLCertList()
+  .then(data => {
+    console.log('所有证书列表:', data.list);
+    data.list.forEach(cert => {
+      console.log(`证书ID: ${cert.id}, 名称: ${cert.name}, 域名: ${cert.dnsNames.join(', ')}`);
+    });
+  })
+  .catch(error => {
+    console.error('获取所有证书失败:', error);
+  });
+
+// 2. 分页获取证书（第一页，每页10个）
+getSSLCertList(0, 10)
+  .then(data => {
+    console.log('第一页证书:', data.list);
+    console.log(`第 1 页，共 ${Math.ceil(data.total / 10)} 页`);
+  })
+  .catch(error => {
+    console.error('获取第一页证书失败:', error);
+  });
+
+// 3. 获取第二页证书
+getSSLCertList(10, 10)
+  .then(data => {
+    console.log('第二页证书:', data.list);
+  })
+  .catch(error => {
+    console.error('获取第二页证书失败:', error);
+  });
+```
+
+#### 使用 Axios
+```javascript
+/**
+ * 使用 Axios 获取SSL证书列表
+ */
+async function getSSLCertListWithAxios(offset = 0, size = null) {
+  try {
+    const requestData = {
+      accessKeyId: API_CONFIG.accessKeyId,
+      accessKey: API_CONFIG.accessKey,
+      offset: offset
+    };
+
+    if (size !== null) {
+      requestData.size = size;
+    }
+
+    const response = await axios({
+      method: 'post',
+      url: `${API_CONFIG.baseUrl}/getSSLCertList`,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      data: requestData,
+      timeout: 10000 // 10秒超时
+    });
+
+    if (response.data.code === 200) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.message);
+    }
+  } catch (error) {
+    if (error.response) {
+      console.error('服务器响应错误:', error.response.data);
+    } else if (error.request) {
+      console.error('网络请求错误:', error.message);
+    } else {
+      console.error('请求配置错误:', error.message);
+    }
+    throw error;
+  }
+}
+
+// 使用示例
+getSSLCertListWithAxios()
+  .then(data => {
+    console.log('证书总数:', data.total);
+    console.log('证书列表:', data.list);
+  })
+  .catch(error => {
+    console.error('获取证书列表失败:', error);
+  });
+```
+
+#### 分页处理工具函数
+```javascript
+/**
+ * 证书列表分页处理工具
+ */
+class SSLCertPagination {
+  constructor(pageSize = 10) {
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+    this.totalCount = 0;
+    this.totalPages = 0;
+  }
+
+  /**
+   * 获取指定页的证书列表
+   */
+  async getPage(page = 1) {
+    this.currentPage = page;
+    const offset = (page - 1) * this.pageSize;
+    
+    const data = await getSSLCertList(offset, this.pageSize);
+    
+    this.totalCount = data.total;
+    this.totalPages = Math.ceil(data.total / this.pageSize);
+    
+    return {
+      list: data.list,
+      pagination: {
+        currentPage: this.currentPage,
+        pageSize: this.pageSize,
+        totalCount: this.totalCount,
+        totalPages: this.totalPages,
+        hasNext: this.currentPage < this.totalPages,
+        hasPrev: this.currentPage > 1
+      }
+    };
+  }
+
+  /**
+   * 获取下一页
+   */
+  async nextPage() {
+    if (this.currentPage < this.totalPages) {
+      return await this.getPage(this.currentPage + 1);
+    }
+    throw new Error('已经是最后一页');
+  }
+
+  /**
+   * 获取上一页
+   */
+  async prevPage() {
+    if (this.currentPage > 1) {
+      return await this.getPage(this.currentPage - 1);
+    }
+    throw new Error('已经是第一页');
+  }
+
+  /**
+   * 获取第一页
+   */
+  async firstPage() {
+    return await this.getPage(1);
+  }
+
+  /**
+   * 获取最后一页
+   */
+  async lastPage() {
+    if (this.totalPages > 0) {
+      return await this.getPage(this.totalPages);
+    }
+    return await this.getPage(1);
+  }
+}
+
+// 使用分页工具示例
+const pagination = new SSLCertPagination(5); // 每页5个证书
+
+// 获取第一页
+pagination.firstPage()
+  .then(result => {
+    console.log('第一页证书:', result.list);
+    console.log('分页信息:', result.pagination);
+    
+    // 如果有下一页，获取下一页
+    if (result.pagination.hasNext) {
+      return pagination.nextPage();
+    }
+  })
+  .then(result => {
+    if (result) {
+      console.log('第二页证书:', result.list);
+    }
+  })
+  .catch(error => {
+    console.error('分页操作失败:', error);
+  });
+```
+
+### 5. 完整的SSL证书管理类
 
 ```javascript
 /**
@@ -816,6 +1206,19 @@ class SSLCertManager {
   }
 
   /**
+   * 获取证书列表
+   */
+  async getCertList(offset = 0, size = null) {
+    const requestData = { offset };
+    if (size !== null) {
+      requestData.size = size;
+    }
+    
+    const result = await this.request('/getSSLCertList', requestData);
+    return result.data;
+  }
+
+  /**
    * 检查证书过期时间
    */
   async checkCertExpiry(sslCertId) {
@@ -846,17 +1249,74 @@ class SSLCertManager {
       error: result.status === 'rejected' ? result.reason.message : null
     }));
   }
+
+  /**
+   * 获取即将过期的证书列表
+   */
+  async getExpiringSoonCerts(days = 30) {
+    const certList = await this.getCertList();
+    const expiringSoonCerts = [];
+    
+    for (const cert of certList.list) {
+      try {
+        const expiry = await this.checkCertExpiry(cert.id);
+        if (expiry.daysLeft <= days && expiry.daysLeft > 0) {
+          expiringSoonCerts.push({
+            ...cert,
+            expiryInfo: expiry
+          });
+        }
+      } catch (error) {
+        console.warn(`检查证书 ${cert.id} 过期时间失败:`, error.message);
+      }
+    }
+    
+    return expiringSoonCerts;
+  }
+
+  /**
+   * 搜索证书（根据名称或域名）
+   */
+  async searchCerts(keyword) {
+    const certList = await this.getCertList();
+    
+    return certList.list.filter(cert => {
+      const nameMatch = cert.name.toLowerCase().includes(keyword.toLowerCase());
+      const domainMatch = cert.dnsNames.some(domain => 
+        domain.toLowerCase().includes(keyword.toLowerCase())
+      );
+      return nameMatch || domainMatch;
+    });
+  }
 }
 
 // 使用示例
 const certManager = new SSLCertManager();
 
-// 查询单个证书
+// 1. 查询单个证书
 certManager.findCert(2106)
   .then(cert => console.log('证书信息:', cert))
   .catch(err => console.error('查询失败:', err));
 
-// 创建新证书
+// 2. 获取所有证书列表
+certManager.getCertList()
+  .then(data => {
+    console.log(`总共有 ${data.total} 个证书`);
+    data.list.forEach(cert => {
+      console.log(`证书: ${cert.name} (ID: ${cert.id})`);
+      console.log(`域名: ${cert.dnsNames.join(', ')}`);
+    });
+  })
+  .catch(err => console.error('获取证书列表失败:', err));
+
+// 3. 分页获取证书列表
+certManager.getCertList(0, 5) // 获取前5个证书
+  .then(data => {
+    console.log('前5个证书:', data.list);
+  })
+  .catch(err => console.error('获取分页证书失败:', err));
+
+// 4. 创建新证书
 const newCertData = {
   isOn: true,
   name: "example.com",
@@ -878,7 +1338,7 @@ certManager.createCert(newCertData)
   })
   .catch(err => console.error('❌ 创建失败:', err));
 
-// 检查证书过期情况
+// 5. 检查证书过期情况
 certManager.checkCertExpiry(2106)
   .then(expiry => {
     console.log(`证书过期时间: ${expiry.expiryDate}`);
@@ -888,7 +1348,31 @@ certManager.checkCertExpiry(2106)
     }
   });
 
-// 批量查询证书
+// 6. 获取即将过期的证书
+certManager.getExpiringSoonCerts(30) // 30天内过期的证书
+  .then(expiringSoonCerts => {
+    if (expiringSoonCerts.length > 0) {
+      console.log('⚠️ 即将过期的证书:');
+      expiringSoonCerts.forEach(cert => {
+        console.log(`- ${cert.name}: ${cert.expiryInfo.daysLeft} 天后过期`);
+      });
+    } else {
+      console.log('✅ 没有即将过期的证书');
+    }
+  })
+  .catch(err => console.error('检查过期证书失败:', err));
+
+// 7. 搜索证书
+certManager.searchCerts('example')
+  .then(results => {
+    console.log('搜索结果:', results);
+    results.forEach(cert => {
+      console.log(`匹配的证书: ${cert.name}`);
+    });
+  })
+  .catch(err => console.error('搜索证书失败:', err));
+
+// 8. 批量查询证书
 certManager.findMultipleCerts([2106, 2107, 2108])
   .then(results => {
     results.forEach(result => {
@@ -899,9 +1383,127 @@ certManager.findMultipleCerts([2106, 2107, 2108])
       }
     });
   });
+
+// 9. 完整的证书管理流程示例
+async function completeSSLManagement() {
+  try {
+    // 获取所有证书
+    const allCerts = await certManager.getCertList();
+    console.log(`管理 ${allCerts.total} 个证书`);
+    
+    // 检查即将过期的证书
+    const expiringSoon = await certManager.getExpiringSoonCerts(30);
+    if (expiringSoon.length > 0) {
+      console.log(`发现 ${expiringSoon.length} 个即将过期的证书`);
+      
+      // 可以在这里实现自动续期逻辑
+      for (const cert of expiringSoon) {
+        console.log(`处理即将过期的证书: ${cert.name}`);
+        // 这里可以调用更新证书的逻辑
+      }
+    }
+    
+    // 搜索特定域名的证书
+    const searchResults = await certManager.searchCerts('example.com');
+    console.log(`找到 ${searchResults.length} 个包含 'example.com' 的证书`);
+    
+  } catch (error) {
+    console.error('SSL证书管理流程失败:', error);
+  }
+}
+
+// 执行完整的管理流程
+completeSSLManagement();
 ```
 
-### 5. 错误处理最佳实践
+### 6. cURL命令行测试示例
+
+#### 获取所有SSL证书列表
+```bash
+curl -X POST https://open.farcdn.net/api/source/getSSLCertList \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessKeyId": "u2ZF6k63dFCOS7It",
+    "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG"
+  }'
+```
+
+#### 分页获取证书列表
+```bash
+# 获取前10个证书
+curl -X POST https://open.farcdn.net/api/source/getSSLCertList \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessKeyId": "u2ZF6k63dFCOS7It",
+    "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG",
+    "offset": 0,
+    "size": 10
+  }'
+
+# 获取第11-20个证书
+curl -X POST https://open.farcdn.net/api/source/getSSLCertList \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessKeyId": "u2ZF6k63dFCOS7It",
+    "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG",
+    "offset": 10,
+    "size": 10
+  }'
+```
+
+#### 查询单个证书详情
+```bash
+curl -X POST https://open.farcdn.net/api/source/findSSLCertConfig \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sslCertId": 2106,
+    "accessKeyId": "u2ZF6k63dFCOS7It",
+    "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG"
+  }'
+```
+
+#### 美化输出（需要安装jq）
+```bash
+# 美化证书列表输出
+curl -X POST https://open.farcdn.net/api/source/getSSLCertList \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessKeyId": "u2ZF6k63dFCOS7It",
+    "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG"
+  }' | jq '.'
+
+# 只显示证书名称和域名
+curl -X POST https://open.farcdn.net/api/source/getSSLCertList \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessKeyId": "u2ZF6k63dFCOS7It",
+    "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG"
+  }' | jq '.data.list[] | {name: .name, domains: .dnsNames}'
+```
+
+#### 调试模式（显示详细请求信息）
+```bash
+curl -v -X POST https://open.farcdn.net/api/source/getSSLCertList \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessKeyId": "u2ZF6k63dFCOS7It",
+    "accessKey": "mTGaNRGUFHj3r3YxMrrg5XSGIXd6rBWG"
+  }'
+```
+
+#### 错误处理示例
+```bash
+# 测试缺少参数的错误响应
+curl -X POST https://open.farcdn.net/api/source/getSSLCertList \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accessKeyId": "u2ZF6k63dFCOS7It"
+  }'
+
+# 预期返回400错误：缺少必要参数
+```
+
+### 7. 错误处理最佳实践
 ```javascript
 /**
  * 带重试机制的请求函数
